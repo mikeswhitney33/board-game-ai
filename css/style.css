@@ -1,0 +1,31 @@
+
+
+.wrapper {
+    display: grid;
+    grid-template-columns: 1fr;
+}
+
+#board {
+
+    border: solid 1px black;
+    width: 100%;
+}
+
+
+/* Medium */
+@media only screen and (min-width: 32em) {
+    .wrapper {
+        grid-template-columns: 1fr 2fr 1fr;
+    }
+
+    #board {
+        grid-column: 2 / 3;
+    }
+
+    /* Large */
+    @media only screen and (min-width: 64em) {
+
+    }
+}
+
+
