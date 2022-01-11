@@ -25,6 +25,20 @@ class BaseBoard {
         this.ctx.stroke();
     }
 
+    index_to_coords(idx) {
+        const row = idx % 3;
+        const col = Math.floor(idx / 3);
+        return [row, col];
+    }
+
+    coords_to_index(row, col) {
+        return row * this.n_cols + col;
+    }
+
+    draw_piece(row, col) {
+
+    }
+
     draw() {
         let color = this.primary_color;
 
@@ -39,6 +53,7 @@ class BaseBoard {
                     continue;
                 }
                 color = color == this.primary_color ? this.secondary_color : this.primary_color;
+                this.draw_piece(row, col);
             }
         }
         if(this.line_thickness != 0)
