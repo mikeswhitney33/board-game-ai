@@ -1,2 +1,2 @@
 # board-game-ai
-A collection of board games playable with humans and robots a like in the browser.
+A collection of board games playable with humans and AI using pygame.
