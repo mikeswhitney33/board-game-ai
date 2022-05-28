@@ -55,8 +55,6 @@ def main():
             cur_player = toggle[cur_player]
             game.draw(screen, cur_player)
         pygame.display.update()
-
-
     pygame.quit()
 
 if __name__ == "__main__":
