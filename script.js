@@ -13,6 +13,18 @@ const player2Select = document.querySelector("select#player2");
 const resetBtn = document.querySelector("div#reset-btn");
 // ===========
 
+// =========== Helpers
+function drawMessage(text) {
+    const fontsize = 120;
+    ctx.font = `${fontsize}px Arial`;
+    ctx.fillStyle = "#000000aa";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+}
+// ===========
+
 // =========== Game
 class Game {
     constructor(rows, cols) {
@@ -96,7 +108,7 @@ class Connect4 extends Game {
                 let oh = 0, ov = 0, od1 = 0, od2 = 0;
                 for(let i = 0;i < 4;i++) {
                     // horizontal
-                    if(col < this.cols - 4) {
+                    if(col <= this.cols - 4) {
                         if (this.grid[row][col + i] === player) {
                             ph++;
                         }
@@ -114,7 +126,7 @@ class Connect4 extends Game {
                         }
                     }
                     // diagonal 1
-                    if(row <= this.rows - 4 && col < this.cols - 4) {
+                    if(row <= this.rows - 4 && col <= this.cols - 4) {
                         if (this.grid[row + i][col + i] === player) {
                             pd1++;
                         }
@@ -202,7 +214,7 @@ class Connect4 extends Game {
      }
     draw(winner) {
         const padding = 20;
-        ctx.fillStyle = "blue";
+        ctx.fillStyle = "#282973";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         const cellWidth = canvas.width / this.cols;
         const cellHeight = canvas.height / this.rows;
@@ -236,12 +248,8 @@ class Connect4 extends Game {
             else if (winner === 2) {
                 text = "Yellow Wins!";
             }
-            ctx.font = "120px Arial";
-            ctx.fillStyle = "black";
-            ctx.textAlign = "center";
-            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+            drawMessage(text);
         }
-
      }
 }
 // ===========
@@ -317,22 +325,39 @@ class Tictactoe extends Game {
         return {row: row, col: col};
     }
     draw(winner) {
-        const padding = 20;
+
         const cellWidth = canvas.width / this.cols;
         const cellHeight = canvas.height / this.rows;
+        const padding = cellWidth / 4;
+
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(cellWidth/4, cellHeight);
+        ctx.lineTo(cellWidth * 3 - cellWidth / 4, cellHeight);
+
+        ctx.moveTo(cellWidth / 4, 2 * cellHeight);
+        ctx.lineTo(cellWidth * 3 - cellWidth / 4, 2 * cellHeight);
+
+        ctx.moveTo(cellWidth, cellHeight / 4);
+        ctx.lineTo(cellWidth, cellHeight * 3 - cellHeight / 4);
+
+        ctx.moveTo(cellWidth * 2, cellHeight / 4);
+        ctx.lineTo(cellWidth * 2, cellHeight * 3 - cellHeight / 4);
+        ctx.stroke();
+
+        ctx.lineWidth = 50;
+
         for(let row = 0;row < this.rows;row++) {
             for(let col = 0;col < this.cols;col++) {
-                ctx.fillStyle = "white";
-                ctx.strokeStyle = "black";
-                ctx.lineWidth = 5;
                 const x = col * cellWidth;
                 const y = row * cellHeight;
-                ctx.fillRect(x, y, cellWidth, cellHeight);
-                ctx.strokeRect(x, y, cellWidth, cellHeight);
 
                 if(this.grid[row][col] === 1) {
-                    ctx.lineWidth = 20;
-                    ctx.lineCap = "round";
+                    ctx.strokeStyle = "black";
                     ctx.beginPath();
                     ctx.moveTo(x + padding, y + padding);
                     ctx.lineTo(x + cellWidth - padding, y + cellHeight - padding);
@@ -342,7 +367,7 @@ class Tictactoe extends Game {
                     ctx.stroke();
                 }
                 else if(this.grid[row][col] === 2) {
-                    ctx.lineWidth = 20;
+                    ctx.strokeStyle = "red";
                     ctx.beginPath();
                     ctx.arc(x + cellWidth /2 , y + cellHeight/ 2, cellWidth/2-padding, 0, 360);
                     ctx.stroke();
@@ -359,10 +384,9 @@ class Tictactoe extends Game {
         else if (winner === 2) {
             text = "O Wins!";
         }
-        ctx.font = "120px Arial";
-        ctx.fillStyle = "red";
-        ctx.textAlign = "center";
-        ctx.fillText(text, canvas.width/2, canvas.height/2);
+        if(winner !== 0) {
+            drawMessage(text);
+        }
     }
 }
 // ===========
@@ -401,7 +425,7 @@ class GameManager {
     }
 
     play() {
-        this.game.draw();
+        this.game.draw(0);
         this.player1.playTurn();
     }
 
@@ -505,7 +529,7 @@ class AIPlayer extends Player {
 }
 
 class RandomAI extends AIPlayer {
-    selectBestTurn(validMoves) {
+    selectBestMove(validMoves) {
         const moveId = Math.floor(Math.random() * validMoves.length);
         return validMoves[moveId];
     }
@@ -559,8 +583,8 @@ class MinimaxAI extends AIPlayer {
 }
 
 const gameOptions = {
+    "tictactoe": Tictactoe,
     "connect4": Connect4,
-    "tictactoe": Tictactoe
 }
 
 const playerOptions = {
