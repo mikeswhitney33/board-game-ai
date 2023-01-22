@@ -1,5 +1,6 @@
 import { Tictactoe } from "./games/tictactoe.js";
 import { Connect4 } from "./games/connect4.js";
+import { Reversi } from "./games/reversi.js";
 import { fillSelect } from "./utils.js";
 import { HumanPlayer } from "./players/human-player.js";
 import { RandomAI } from "./players/ai-random.js";
@@ -18,8 +19,9 @@ export class GameManager {
         };
         this.options = {
             game: {
-                "tictactoe": Tictactoe,
-                "connect4": Connect4,
+                "Tictactoe": Tictactoe,
+                "Connect 4": Connect4,
+                "Reversi": Reversi
             },
             player: {
                 "Human": HumanPlayer,

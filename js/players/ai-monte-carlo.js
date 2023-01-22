@@ -8,12 +8,8 @@ export class MonteCarloAI extends AIPlayer {
         for(const move of validMoves) {
             const nextGame = this.manager.game.simulateMove(this.player, move);
             let numWins = 0;
-            let numLosses = 0;
             for(let i = 0;i < 1000;i++) {
                 numWins += this.simulateToEnd(nextGame);
-                // if(this.simulateToEnd(nextGame)) {
-                //     numWins++;
-                // }
             }
             if (numWins > best) {
                 best = numWins;
