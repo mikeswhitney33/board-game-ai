@@ -47,5 +47,5 @@ export class Game {
     getValidMoves(player) { }
     evaluate(player) { }
     mouseToMove(x, y) { }
-    draw(winner) { }
+    draw(winner, player) { }
 }

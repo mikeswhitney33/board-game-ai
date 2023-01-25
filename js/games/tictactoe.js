@@ -28,49 +28,50 @@ export class Tictactoe extends Game {
         return moves;
     }
     evaluate(player) {
-        const opponent = player === PlayerType.PLAYER ? PlayerType.OPPONENT : PlayerType.PLAYER;
+        const opponent = PlayerType.otherPlayer(player);
         const checkPlayer = value => value === player;
         const checkOpponent = value => value === opponent;
+        const nextPlayer = opponent;
         for (let i = 0; i < 3; i++) {
             if (this.grid[i].every(checkPlayer)) {
-                return { score: 10, leaf: true, winner: player };
+                return { score: 10, leaf: true, winner: player, nextPlayer };
             }
             else if (this.grid[i].every(checkOpponent)) {
-                return { score: -10, leaf: true, winner: opponent };
+                return { score: -10, leaf: true, winner: opponent, nextPlayer };
             }
             const columns = [this.grid[0][i], this.grid[1][i], this.grid[2][i]];
             if (columns.every(checkPlayer)) {
-                return { score: 10, leaf: true, winner: player };
+                return { score: 10, leaf: true, winner: player, nextPlayer };
             }
             else if (columns.every(checkOpponent)) {
-                return { score: -10, leaf: true, winner: opponent };
+                return { score: -10, leaf: true, winner: opponent, nextPlayer };
             }
         }
         const diag1 = [this.grid[0][0], this.grid[1][1], this.grid[2][2]];
         if (diag1.every(checkPlayer)) {
-            return { score: 10, leaf: true, winner: player };
+            return { score: 10, leaf: true, winner: player, nextPlayer };
         }
         else if (diag1.every(checkOpponent)) {
-            return { score: -10, leaf: true, winner: opponent };
+            return { score: -10, leaf: true, winner: opponent, nextPlayer };
         }
         const diag2 = [this.grid[0][2], this.grid[1][1], this.grid[2][0]];
         if (diag2.every(checkPlayer)) {
-            return { score: 10, leaf: true, winner: player };
+            return { score: 10, leaf: true, winner: player, nextPlayer };
         }
         else if (diag2.every(checkOpponent)) {
-            return { score: -10, leaf: true, winner: opponent };
+            return { score: -10, leaf: true, winner: opponent, nextPlayer };
         }
         if (this.getValidMoves().length === 0) {
-            return { score: 0, leaf: true, winner: -1 };
+            return { score: 0, leaf: true, winner: -1, nextPlayer };
         }
-        return { score: 0, leaf: false, winner: 0 };
+        return { score: 0, leaf: false, winner: 0, nextPlayer };
     }
     mouseToMove(x, y) {
         const row = Math.floor(y / this.canvas.height * this.rows);
         const col = Math.floor(x / this.canvas.width * this.cols);
         return { row: row, col: col };
     }
-    draw(winner) {
+    draw(winner, player) {
 
         const cellWidth = this.canvas.width / this.cols;
         const cellHeight = this.canvas.height / this.rows;

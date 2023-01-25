@@ -8,12 +8,8 @@ export class MonteCarloAI extends AIPlayer {
         for(const move of validMoves) {
             const nextGame = this.manager.game.simulateMove(this.player, move);
             let numWins = 0;
-            let numLosses = 0;
-            for(let i = 0;i < 1000;i++) {
+            for(let i = 0;i < 100;i++) {
                 numWins += this.simulateToEnd(nextGame);
-                // if(this.simulateToEnd(nextGame)) {
-                //     numWins++;
-                // }
             }
             if (numWins > best) {
                 best = numWins;
@@ -31,8 +27,10 @@ export class MonteCarloAI extends AIPlayer {
                 return result.score;
             }
             const validMoves = game.getValidMoves(player);
-            const moveId = Math.floor(Math.random() * validMoves.length);
-            game = game.simulateMove(player, validMoves[moveId]);
+            if(validMoves.length > 0) {
+                const moveId = Math.floor(Math.random() * validMoves.length);
+                game = game.simulateMove(player, validMoves[moveId]);
+            }
             player = PlayerType.otherPlayer(player);
         }
     }
