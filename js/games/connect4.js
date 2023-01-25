@@ -33,7 +33,8 @@ export class Connect4 extends Game {
         return moves;
     }
     evaluate(player) {
-        const opponent = player === PlayerType.PLAYER ? PlayerType.OPPONENT : PlayerType.PLAYER;
+        const opponent = PlayerType.otherPlayer(player);
+        const nextPlayer = opponent;
         // check 4's
         for (let row = 1; row < this.rows; row++) {
             for (let col = 0; col < this.cols; col++) {
@@ -78,15 +79,15 @@ export class Connect4 extends Game {
                     }
                 }
                 if (ph === 4 || pv === 4 || pd1 === 4 || pd2 === 4) {
-                    return { leaf: true, score: 10, winner: player };
+                    return { leaf: true, score: 10, winner: player, nextPlayer };
                 }
                 if (oh === 4 || ov === 4 || od1 === 4 || od2 === 4) {
-                    return { leaf: true, score: -10, winner: opponent };
+                    return { leaf: true, score: -10, winner: opponent, nextPlayer };
                 }
             }
         }
         if (this.getValidMoves(player).length === 0) {
-            return { leaf: true, score: 0, winner: -1 };
+            return { leaf: true, score: 0, winner: -1, nextPlayer };
         }
         for (let row = 1; row < this.rows; row++) {
             for (let col = 0; col < this.cols; col++) {
@@ -131,15 +132,15 @@ export class Connect4 extends Game {
                     }
                 }
                 if (ph === 3 || pv === 3 || pd1 === 3 || pd2 === 3) {
-                    return { leaf: false, score: 3, winner: 0 };
+                    return { leaf: false, score: 3, winner: 0, nextPlayer };
                 }
                 if (oh === 3 || ov === 3 || od1 === 3 || od2 === 3) {
-                    return { leaf: false, score: -3, winner: 0 };
+                    return { leaf: false, score: -3, winner: 0, nextPlayer };
                 }
             }
         }
 
-        return { leaf: false, score: 0, winner: 0 };
+        return { leaf: false, score: 0, winner: 0, nextPlayer };
     }
     mouseToMove(x, y) {
         const col = Math.floor(x / this.canvas.width * this.cols);

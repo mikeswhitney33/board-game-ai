@@ -1,3 +1,4 @@
+import { PlayerType } from "./games/game.js";
 import { Tictactoe } from "./games/tictactoe.js";
 import { Connect4 } from "./games/connect4.js";
 import { Reversi } from "./games/reversi.js";
@@ -51,21 +52,23 @@ export class GameManager {
             this.player2.reset();
         }
         this.game = new this.options.game[this.selects.game.value](this.canvas, this.ctx);
-        this.player1 = new this.options.player[this.selects.player1.value](1, this);
-        this.player2 = new this.options.player[this.selects.player2.value](2, this);
+        this.players = {
+            player1: new this.options.player[this.selects.player1.value](PlayerType.PLAYER, this),
+            player2: new this.options.player[this.selects.player2.value](PlayerType.OPPONENT, this),
+        };
     }
 
     registerPlayer1(player) {
-        this.player1 = player;
+        this.players.player1 = player;
     }
 
     registerPlayer2(player) {
-        this.player2 = player;
+        this.players.player1 = player;
     }
 
     play() {
-        this.game.draw(0);
-        this.player1.playTurn();
+        this.game.draw(0, PlayerType.PLAYER);
+        this.players.player1.playTurn();
     }
 
     isValidMove(player, move) {
@@ -87,13 +90,12 @@ export class GameManager {
     finishTurn(player) {
         const result = this.game.evaluate(player);
         if (result.winner === 0) {
-            if (player === 1) {
-                this.player2.playTurn();
-            }
-            else if (player === 2) {
-                this.player1.playTurn();
-            }
+            const nextPlayer = result.nextPlayer;
+            this.game.draw(result.winner, nextPlayer);
+            this.players[`player${nextPlayer}`].playTurn();
         }
-        this.game.draw(result.winner);
+        else {
+            this.game.draw(result.winner);
+        }
     }
 }

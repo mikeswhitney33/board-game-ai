@@ -1,61 +1,170 @@
 import { PlayerType, Game } from "./game.js";
+import { drawMessage } from "../utils.js";
 
 export class Reversi extends Game {
     constructor(canvas, ctx, grid) {
         super(canvas, ctx, 8, 8);
         this.maxDepth = 3;
-        this.turn = 0;
         if (grid !== undefined) {
             this.grid = grid;
-            for(let row = 0;row < this.rows;row++) {
-                for(let col = 0;col < this.cols;col++) {
-                    if(this.grid[row][col] !== PlayerType.EMPTY) {
-                        this.turn++;
-                    }
-                }
-            }
         }
         this.type = Reversi;
     }
-    playMove(player, move) {
-        this.turn++;
+    playDirection(player, move, srow, scol) {
+        if(this.get(move) === player) {
+            return;
+        }
+        this.set(move, player);
+        const nextMove = this.next(move, srow, scol);
+        this.playDirection(player, nextMove, srow, scol);
     }
-    isValidMove(player, move) {
-        if(this.grid[move.row][move.col] !== PlayerType.EMPTY) {
+    playMove(player, move) {
+        console.log(move);
+        this.set(move, player);
+        if(this.isMiddleFour(move)) {
+            return;
+        }
+        const opponent = PlayerType.otherPlayer(player);
+        for(let srow = -1;srow < 2;srow++) {
+            for(let scol = -1;scol < 2;scol++) {
+                if(srow === 0 && scol === 0) {
+                    continue;
+                }
+                const nextMove = this.next(move, srow, scol);
+                if(!this.inBounds(nextMove)) {
+                    continue;
+                }
+                if(this.get(nextMove) !== opponent) {
+                    continue;
+                }
+                if(this.checkDirection(player, nextMove, srow, scol)) {
+                    this.playDirection(player, nextMove, srow, scol);
+                }
+            }
+        }
+    }
+    checkDirection(player, move, srow, scol) {
+        if(!this.inBounds(move)) {
             return false;
         }
+        if(this.get(move) === PlayerType.EMPTY) {
+            return false;
+        }
+        if(this.get(move) === PlayerType.otherPlayer(player)) {
+            return this.checkDirection(player, this.next(move, srow, scol), srow, scol);
+        }
+        return true;
+    }
+    inBounds(move) {
+        return move.row >= 0 && move.row < this.rows && move.col >= 0 && move.col < this.cols;
+    }
+    next(move, srow, scol) {
+        return {
+            row: move.row + srow,
+            col: move.col + scol
+        }
+    }
+    get(move) {
+        return this.grid[move.row][move.col];
+    }
+    set(move, value) {
+        this.grid[move.row][move.col] = value;
+    }
+    isMiddleFour(move) {
+        return (move.row == 3 && move.col == 3) ||
+            (move.row == 3 && move.col == 4) ||
+            (move.row == 4 && move.col == 3) ||
+            (move.row == 4 && move.col == 4);
+    }
+    firstFour() {
+        return this.get({row:3, col:3}) !== PlayerType.EMPTY &&
+            this.get({ row: 3, col: 4 }) !== PlayerType.EMPTY &&
+            this.get({ row: 4, col: 3 }) !== PlayerType.EMPTY &&
+            this.get({ row: 4, col: 4 }) !== PlayerType.EMPTY;
+    }
+    isValidMove(player, move) {
+        if(this.get(move) !== PlayerType.EMPTY) {
+            return false;
+        }
+        if(!this.firstFour()) {
+            return this.isMiddleFour(move);
+        }
+        const opponent = PlayerType.otherPlayer(player);
+        for(let srow = -1;srow < 2;srow++) {
+            for(let scol = -1;scol < 2;scol++) {
+                if(srow === 0 && scol === 0) {
+                    continue;
+                }
+                const nextMove = this.next(move, srow, scol);
+                if(!this.inBounds(nextMove)) {
+                    continue;
+                }
+                if(this.get(nextMove) !== opponent) {
+                    continue;
+                }
+                if(this.checkDirection(player, {row:move.row + srow, col:move.col+scol}, srow, scol)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
     getValidMoves(player) {
         const validMoves = [];
-        if(this.turn < 4) {
-            if (this.grid[3][3] !== PlayerType.EMPTY) {
-                validMoves.push({row: 3, col: 3});
-            }
-            if (this.grid[4][3] !== PlayerType.EMPTY) {
-                validMoves.push({ row: 4, col: 3 });
-            }
-            if (this.grid[3][4] !== PlayerType.EMPTY) {
-                validMoves.push({ row: 3, col: 4 });
-            }
-            if (this.grid[4][4] !== PlayerType.EMPTY) {
-                validMoves.push({ row: 4, col: 4 });
-            }
-        }
-        else {
-            for (let row = 0; row < this.rows; row++) {
-                for (let col = 0; col < this.cols; col++) {
-                    const move = { row: row, col: col };
-                    if (this.isValidMove(player, move)) {
-                        validMoves.push(move);
-                    }
+        for(let row = 0;row < this.rows;row++){
+            for(let col = 0;col < this.cols;col++){
+                const move = {row, col};
+                if(this.isValidMove(player, move)) {
+                    validMoves.push(move);
                 }
             }
         }
         return validMoves;
     }
-    evaluate(player) { }
-    mouseToMove(x, y) { }
-    draw(winner) {
+    evaluate(player) {
+        let opponent = PlayerType.otherPlayer(player);
+        let playerScore = 0;
+        let opponentScore = 0;
+        for(let row = 0;row < this.rows;row++) {
+            for(let col = 0;col < this.cols;col++) {
+                const val = this.get({row, col});
+                if(val === player) {
+                    playerScore++;
+                }
+                if(val === opponent) {
+                    opponentScore++;
+                }
+            }
+        }
+        let leaf = false;
+        let winner = 0;
+        let nextPlayer = opponent;
+        const score = playerScore / opponentScore;
+        const opponentValidMoves = this.getValidMoves(opponent);
+        if(opponentValidMoves.length === 0) {
+            nextPlayer = player;
+            const playerValidMoves = this.getValidMoves(player);
+            if(playerValidMoves.length === 0) {
+                leaf = true;
+                if(playerScore > opponentScore) {
+                    winner = player;
+                }
+                else if(opponentScore > playerScore) {
+                    winner = opponent;
+                }
+                else {
+                    winner = -1;
+                }
+            }
+        }
+        return {leaf, score, winner, nextPlayer};
+    }
+    mouseToMove(x, y) {
+        const row = Math.floor(y / this.canvas.height * this.rows);
+        const col = Math.floor(x / this.canvas.width * this.cols);
+        return { row: row, col: col };
+    }
+    draw(winner, player) {
         this.ctx.fillStyle = "green";
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -86,6 +195,29 @@ export class Reversi extends Game {
                     this.ctx.fill();
                 }
             }
+        }
+
+        if(typeof player !== "undefined") {
+            const validMoves = this.getValidMoves(player);
+            this.ctx.strokeStyle = "red";
+            this.ctx.lineWidth = 3;
+            for (const move of validMoves) {
+                this.ctx.strokeRect(move.col * cellWidth, move.row * cellHeight, cellWidth, cellHeight);
+            }
+        }
+
+        if(winner !== 0) {
+            let text;
+            if(winner === PlayerType.PLAYER) {
+                text = "White Wins!";
+            }
+            else if(winner === PlayerType.OPPONENT) {
+                text = "Black Wins!";
+            }
+            else {
+                text = "Tie Game!";
+            }
+            drawMessage(this.canvas, this.ctx, text);
         }
     }
 }
