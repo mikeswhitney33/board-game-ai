@@ -1,83 +1,136 @@
-from pygame import Surface
-from board_game_ai.games.game import Game
-import numpy as np
+from abc import abstractmethod
+from copy import deepcopy
+
 import pygame
-from scipy.signal import convolve2d
+from pygame import Surface
+
+from ..colors import BLACK, BLUE, RED, YELLOW
+from .base_game import BaseGame
+
+RED_PLAYER = 0
+YELLOW_PLAYER = 1
 
 
-class Connect4Game(Game):
-    def __init__(self, *, grid=None):
-        super().__init__(grid=grid, rows=7, cols=7)
-        horiz = np.ones((1, 4), dtype=int)
-        vert = np.transpose(horiz)
-        diag = np.eye(4, dtype=int)
-        diag0 = np.fliplr(diag)
-        self.detection_kernels = [horiz, vert, diag, diag0]
-        self.font = pygame.font.SysFont("serif", 32)
-
-    def draw(self, screen: Surface, player):
-        width, height = screen.get_size()
-        cell_width = width // 7
-        cell_height = height // 7
-        screen.fill((0, 0, 255))
-        for row in range(1, self.grid.shape[0]):
-            for col in range(self.grid.shape[1]):
-                if self.grid[row, col] == 0:
-                    color = (255, 255, 255)
-                elif self.grid[row, col] == 1:
-                    color = (255, 255, 0)
-                elif self.grid[row, col] == 2:
-                    color = (255, 0, 0)
-                pygame.draw.ellipse(screen, color, (col * cell_width + 3, row * cell_height + 3, cell_width - 6, cell_height - 6))
-        if not self.is_termal_state():
-            posx, posy = pygame.mouse.get_pos()
-            row, col = self.mouse_pos_to_cell_num(posx, posy, width, height)
-            color = (255, 0, 0) if player == 2 else (255, 255, 0)
-            pygame.draw.ellipse(screen, color, (col * cell_width + 3, 3, cell_width - 6, cell_height - 6))
+class Connect4(BaseGame):
+    def __init__(self, board=None):
+        self.rows = 6
+        self.cols = 7
+        if board is None:
+            self.board = [[None for _ in range(self.cols)] for _ in range(self.rows)]
         else:
-            if self.is_win(1):
-                text = "Yellow Wins!"
-                color = (255, 255, 0)
-            elif self.is_win(2):
-                text = "Red Wins!"
-                color= (255, 0, 0)
-            else:
-                text = "Tie!"
-                color= (255, 255, 255)
-            text = self.font.render(text, False, color)
-            text_width, text_height = text.get_size()
-            screen.blit(text, (width // 2 - text_width // 2, text_height))
+            self.board = deepcopy(board)
+        super().__init__(end_text_color=BLACK)
 
-    def get_valid_moves(self, player):
-        return [(1, col) for col in range(7) if self.grid[1, col] == 0]
+    def get_player_name(self, player: int) -> str | None:
+        if player == RED_PLAYER:
+            return "Red"
+        if player == YELLOW_PLAYER:
+            return "Yellow"
+        return None
 
-    def state_value(self, player):
-        if self.is_win(player):
-            return 10
-        elif self.is_win(1 if player == 2 else 2):
-            return -10
-        else:
-            return 0
+    def clone(self):
+        return Connect4(board=self.board)
 
-    def is_termal_state(self):
-        return np.all(self.grid[1:] != 0) or self.is_win(1) or self.is_win(2)
+    def draw(self, screen: Surface):
+        # Draw the Connect 4 board
+        width = screen.get_width()
+        height = screen.get_height()
+        total_rows = self.rows + 1
+        cell_width = width // self.cols
+        cell_height = height // total_rows
+        screen.fill(BLUE)
+        for row in range(1, self.rows + 1):
+            for col in range(self.cols):
+                val = self.board[row - 1][col]
+                cx = (col + 0.5) * cell_width
+                cy = (row + 0.5) * cell_height
+                r = cell_width // 2 - 10
+                if val == RED_PLAYER:
+                    pygame.draw.circle(screen, RED, (cx, cy), r)
+                elif val == YELLOW_PLAYER:
+                    pygame.draw.circle(screen, YELLOW, (cx, cy), r)
+                else:
+                    pygame.draw.circle(screen, (127, 127, 127), (cx, cy), r)
+        super().draw(screen)
 
-    def is_win(self, player):
-        mask = self.grid[1:] == player
-        for kernel in self.detection_kernels:
-            arr = convolve2d(mask, kernel, mode="valid")
-            if (arr == 4).any():
+    def check_winner(self) -> int | None:
+        """
+        Checks if a player has won the game on the given board.
+        Returns 0 if the red player wins, 1 if the yellow player wins, or None if no player has won.
+        """
+        board = self.board
+        # Check horizontal lines
+        for row in board:
+            for i in range(len(row) - 3):
+                if row[i] is not None and all(
+                    row[i] == row[j] for j in range(i, i + 4)
+                ):
+                    return row[i]
+
+        # Check vertical lines
+        for col in range(len(board[0])):
+            for row in range(len(board) - 3):
+                if board[row][col] is not None and all(
+                    board[row][col] == board[row + j][col] for j in range(1, 4)
+                ):
+                    return board[row][col]
+
+        # Check diagonal lines (top-left to bottom-right)
+        for row in range(len(board) - 3):
+            for col in range(len(board[0]) - 3):
+                if board[row][col] is not None and all(
+                    board[row][col] == board[row + j][col + j] for j in range(1, 4)
+                ):
+                    return board[row][col]
+
+        # Check diagonal lines (top-right to bottom-left)
+        for row in range(len(board) - 3):
+            for col in range(3, len(board[0])):
+                if board[row][col] is not None and all(
+                    board[row][col] == board[row + j][col - j] for j in range(1, 4)
+                ):
+                    return board[row][col]
+
+        return None
+
+    def is_action_possible(self, action):
+        col, _ = action
+        for row in range(self.rows - 1, -1, -1):
+            if self.board[row][col] is None:
                 return True
         return False
 
-    def is_valid_move(self, player, move):
-        row, col = move
-        return self.grid[1, col] == 0
+    def update_state(self, action):
+        col, player = action
+        for row in range(self.rows - 1, -1, -1):
+            if self.board[row][col] is None:
+                self.board[row][col] = player
+                return True
+        return False
 
-    def play_move(self, player, move):
-        row, col = move
-        for i in range(1, self.grid.shape[0]):
-            if self.grid[i, col] != 0:
-                i -= 1
-                break
-        self.grid[i, col] = player
+    def is_done(self):
+        return self.check_winner() is not None or all(
+            self.board[row][col] is not None
+            for row in range(self.rows)
+            for col in range(self.cols)
+        )
+
+    def get_possible_actions(self):
+        player = self.whose_turn()
+        return [
+            (col, player)
+            for col in range(self.cols)
+            if self.is_action_possible((col, player))
+        ]
+
+    def whose_turn(self):
+        count_RED = sum(row.count(RED_PLAYER) for row in self.board)
+        count_YELLOW = sum(row.count(YELLOW_PLAYER) for row in self.board)
+        return RED_PLAYER if count_RED == count_YELLOW else YELLOW_PLAYER
+
+    def mouse2action(self, screen, mouse_x, mouse_y) -> any:
+        width = screen.get_width()
+        col = mouse_x // (width // self.cols)
+        if 0 <= col < self.cols:
+            return (col, self.whose_turn())
+        return None
