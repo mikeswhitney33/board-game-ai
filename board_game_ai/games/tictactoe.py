@@ -1,83 +1,121 @@
-from board_game_ai.games.game import Game
-import numpy as np
+from copy import deepcopy
+
 import pygame
+from pygame import Surface
+
+from ..colors import BLACK, WHITE
+from .base_game import BaseGame
+
+X = 0
+O = 1
 
 
-class TicTacToeGame(Game):
-    def __init__(self, *, grid=None):
-        super().__init__(grid=grid, rows=3, cols=3)
-        self.font = pygame.font.SysFont("serif", 50)
-
-    def state_value(self, player):
-        if self.is_win(player):
-            return 10
-        elif self.is_win(1 if player == 2 else 2):
-            return -10
+class TicTacToe(BaseGame):
+    def __init__(self, board=None):
+        if board is None:
+            self.board = [[None for _ in range(3)] for _ in range(3)]
         else:
-            return 0
+            self.board = deepcopy(board)
+        super().__init__()
 
-    def is_win(self, player):
-        mask = self.grid == player
-        return mask.all(0).any() | mask.all(1).any() | np.diag(mask).all() | np.diag(mask[:,::-1]).all()
-
-    def is_termal_state(self):
-        return not np.any(self.grid==0) or self.is_win(1) or self.is_win(2)
-
-    def play_move(self, player, move):
-        row, col = move
-        self.grid[row, col] = player
-
-    def is_valid_move(self, player, move):
-        row, col = move
-        return self.grid[row, col] == 0
-
-    def which_three(self, player):
-        mask = self.grid == player
-        if mask.all(0).any():
-            col = np.argmax(mask.all(0))
-            return ((0, col), (2, col))
-        if mask.all(1).any():
-            row = np.argmax(mask.all(1))
-            return ((row, 0), (row, 2))
-        if np.diag(mask).all():
-            return ((0, 0), (2, 2))
-        if np.diag(mask[:,::-1]).all():
-            return ((0, 2), (2, 0))
+    def get_player_name(self, player: int) -> str | None:
+        if player == X:
+            return "X"
+        if player == O:
+            return "O"
         return None
 
-    def draw(self, screen: pygame.Surface, player: int):
-        width, height = screen.get_size()
-        screen.fill((255, 255, 255))
-        cell_width = width // 3
-        cell_height = height // 3
-        pygame.draw.line(screen, (0, 0, 0), (cell_width, 0), (cell_width, height))
-        pygame.draw.line(screen, (0, 0, 0), (2 * cell_width, 0), (2 * cell_width, height))
-        pygame.draw.line(screen, (0, 0, 0), (0, cell_height), (width, cell_height))
-        pygame.draw.line(screen, (0, 0, 0), (0, 2 * cell_height), (width, 2 * cell_height))
-        for row in range(3):
-            for col in range(3):
-                if self.grid[row, col] == 1:
-                    pygame.draw.line(screen, (0, 0, 0), (col * cell_width + 10, row * cell_height + 10), ((col + 1) * cell_width -10, (row + 1) * cell_height - 10), 10)
-                    pygame.draw.line(screen, (0, 0, 0), (col * cell_width + 10, (row + 1) * cell_height - 10), ((col + 1) * cell_width - 10, row * cell_height + 10), 10)
-                elif self.grid[row, col] == 2:
-                    pygame.draw.ellipse(screen, (0, 0, 0), (col * cell_width + 10, row * cell_height + 10, cell_width - 20, cell_height - 20), 10)
-        if self.is_termal_state():
-            cats = False
-            if self.is_win(1):
-                ((row1, col1), (row2, col2)) = self.which_three(1)
-                text = "X wins!"
-            elif self.is_win(2):
-                ((row1, col1), (row2, col2)) = self.which_three(2)
-                text = "O Wins"
-            else:
-                text = "Cat's Game!"
-                cats = True
-            text = self.font.render(text, False, (255, 0, 0))
-            text_width, text_height = text.get_size()
-            screen.blit(text, (width // 2 - text_width // 2, height // 2 - text_height // 2))
-            if not cats:
-                pygame.draw.line(screen, (255, 0, 0), (col1 * cell_width + cell_width//2, row1 * cell_height + cell_height // 2), (col2 * cell_width + cell_width //2, row2 * cell_height + cell_height // 2), 5)
+    def clone(self):
+        return TicTacToe(board=self.board)
 
+    def get_endgame_message(self, winner):
+        if winner is not None:
+            return f"{self.get_player_name(winner)} Wins!"
+        return "Cat's Game!"
 
+    def draw(self, screen: Surface):
+        screen.fill(WHITE)
+        width = screen.get_width()
+        height = screen.get_height()
 
+        third_width = width // 3
+        third_height = height // 3
 
+        pygame.draw.line(screen, BLACK, (third_width, 0), (third_width, height), 2)
+        pygame.draw.line(
+            screen, BLACK, (third_width * 2, 0), (third_width * 2, height), 2
+        )
+        pygame.draw.line(screen, BLACK, (0, third_height), (width, third_height), 2)
+        pygame.draw.line(
+            screen, BLACK, (0, third_height * 2), (width, third_height * 2), 2
+        )
+
+        for i, row in enumerate(self.board):
+            for j, val in enumerate(row):
+                if val == X:
+                    x1 = j * third_width + 10
+                    x2 = (j + 1) * third_width - 10
+                    y1 = i * third_height + 10
+                    y2 = (i + 1) * third_height - 10
+                    pygame.draw.line(screen, BLACK, (x1, y1), (x2, y2), 4)
+                    pygame.draw.line(screen, BLACK, (x1, y2), (x2, y1), 4)
+                elif val == O:
+                    cx = (j + 0.5) * third_width
+                    cy = (i + 0.5) * third_width
+                    pygame.draw.circle(
+                        screen, BLACK, (cx, cy), third_width // 2 - 10, 4
+                    )
+        super().draw(screen)
+
+    def check_winner(self):
+        for row in self.board:
+            if row.count(row[0]) == len(row) and row[0] is not None:
+                return row[0]
+        for col in range(3):
+            if self.board[0][col] == self.board[1][col] == self.board[2][col] != None:
+                return self.board[0][col]
+        if self.board[0][0] == self.board[1][1] == self.board[2][2] != None:
+            return self.board[0][0]
+        if self.board[0][2] == self.board[1][1] == self.board[2][0] != None:
+            return self.board[0][2]
+        return None
+
+    def is_action_possible(self, action):
+        row, col, _ = action
+        return self.board[row][col] is None
+
+    def update_state(self, action) -> bool:
+        if self.is_action_possible(action):
+            row, col, value = action
+            self.board[row][col] = value
+            return True
+        return False
+
+    def whose_turn(self):
+        count_X = sum(row.count(X) for row in self.board)
+        count_O = sum(row.count(O) for row in self.board)
+        return X if count_X == count_O else O
+
+    def is_done(self):
+        return (
+            all(cell is not None for row in self.board for cell in row)
+            or self.check_winner() is not None
+        )
+
+    def get_possible_actions(self):
+        actions = []
+        player = self.whose_turn()
+        for i in range(3):
+            for j in range(3):
+                if self.board[i][j] is None:
+                    actions.append((i, j, player))
+        return actions
+
+    def mouse2action(self, screen, mouse_x, mouse_y) -> any:
+        width = screen.get_width()
+        height = screen.get_height()
+        col = mouse_x // (width // 3)
+        row = mouse_y // (height // 3)
+        if 0 <= row < 3 and 0 <= col < 3 and self.board[row][col] is None:
+            return (row, col, self.whose_turn())
+        return None
